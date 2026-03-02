@@ -1,0 +1,20 @@
+# .NET build artifacts
+bin/
+obj/
+
+# NuGet packages
+*.nupkg
+*.snupkg
+packages/
+
+# VS files
+.vs/
+*.user
+*.suo
+
+# Rider/JetBrains
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
