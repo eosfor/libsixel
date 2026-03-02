@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "dgSpecHash": "Jhk0EMUlCbA=",
+  "success": true,
+  "projectFilePath": "/home/runner/work/libsixel/libsixel/src/LibSixel/LibSixel.csproj",
+  "expectedPackageFiles": [
+    "/tmp/codeql-scratch-b513505240dabc2c/dbs/csharp/working/packages/microsoft.netcore.app.ref/8.0.23/microsoft.netcore.app.ref.8.0.23.nupkg.sha512",
+    "/tmp/codeql-scratch-b513505240dabc2c/dbs/csharp/working/packages/microsoft.aspnetcore.app.ref/8.0.23/microsoft.aspnetcore.app.ref.8.0.23.nupkg.sha512"
+  ],
+  "logs": []
+}
