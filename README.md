@@ -16,7 +16,7 @@ It loads an image file (`.png`, `.jpg`/`.jpeg`, `.svg`), encodes it with the por
 
 ```powershell
 dotnet build ./src/LibSixel.PowerShell/LibSixel.PowerShell.csproj
-Import-Module ./src/LibSixel.PowerShell/bin/Debug/net9.0/LibSixel.PowerShell.psd1
+Import-Module ./src/LibSixel.PowerShell/bin/Debug/net8.0/LibSixel.PowerShell.psd1
 ```
 
 ### Usage examples
