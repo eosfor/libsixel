@@ -1,0 +1,117 @@
+name: libsixel-powershell-publish
+
+on:
+  release:
+    types: [published]
+
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Module version without prerelease suffix'
+        required: true
+        default: '0.2.0'
+      prerelease:
+        description: 'Optional prerelease label'
+        required: false
+        default: 'beta1'
+      dry_run:
+        description: 'Build and validate without publishing to PSGallery'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          if ('${{ github.event_name }}' -eq 'release') {
+            $tag = '${{ github.ref }}' -replace '^refs/tags/', '' -replace '^v', ''
+            if ($tag -notmatch '^([0-9]+\.[0-9]+\.[0-9]+)(?:-([A-Za-z0-9\-]+))?$') {
+              throw 'Bad tag format. Expected vX.Y.Z or vX.Y.Z-label.'
+            }
+            $version = $Matches[1]
+            $prerelease = $Matches[2]
+          }
+          else {
+            $version = '${{ inputs.version }}'
+            $prerelease = '${{ inputs.prerelease }}'
+            if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+$') {
+              throw 'Version must be X.Y.Z.'
+            }
+          }
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          "prerelease=$prerelease" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Restore
+        run: dotnet restore LibSixel.sln
+
+      - name: Test
+        run: dotnet test LibSixel.sln --no-restore --configuration Release
+
+      - name: Publish module files
+        run: |
+          dotnet publish src/LibSixel.PowerShell/LibSixel.PowerShell.csproj \
+            --configuration Release \
+            --framework net8.0 \
+            --no-restore \
+            --output ./LibSixel.PowerShell
+
+      - name: Update and validate manifest
+        shell: pwsh
+        run: |
+          $manifest = './LibSixel.PowerShell/LibSixel.PowerShell.psd1'
+          $version = '${{ steps.version.outputs.version }}'
+          $prerelease = '${{ steps.version.outputs.prerelease }}'
+
+          Update-ModuleManifest `
+            -Path $manifest `
+            -ModuleVersion $version `
+            -Prerelease $prerelease
+
+          $metadata = Test-ModuleManifest -Path $manifest
+          if ($metadata.Version.ToString() -ne $version) {
+            throw "Manifest version '$($metadata.Version)' does not match '$version'."
+          }
+          if ($metadata.PrivateData.PSData.Prerelease -ne $prerelease) {
+            throw "Manifest prerelease '$($metadata.PrivateData.PSData.Prerelease)' does not match '$prerelease'."
+          }
+
+          if (Test-Path './LibSixel.PowerShell/System.Management.Automation.dll') {
+            throw 'The module bundle must not include System.Management.Automation.dll.'
+          }
+
+          Import-Module $manifest -Force
+          if (-not (Get-Command Out-Sixel -ErrorAction SilentlyContinue)) {
+            throw 'Out-Sixel was not exported by the published module.'
+          }
+
+      - name: Upload module artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: LibSixel.PowerShell-${{ steps.version.outputs.version }}-${{ steps.version.outputs.prerelease }}
+          path: LibSixel.PowerShell
+          if-no-files-found: error
+
+      - name: Publish to PSGallery
+        if: ${{ github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && !inputs.dry_run) }}
+        shell: pwsh
+        run: |
+          Publish-Module `
+            -Path './LibSixel.PowerShell' `
+            -NuGetApiKey '${{ secrets.PS_GALLERY_SECRET }}'
