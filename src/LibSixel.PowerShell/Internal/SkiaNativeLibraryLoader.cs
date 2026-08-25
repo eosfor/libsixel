@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Runtime.InteropServices;
+using SkiaSharp;
 
 namespace LibSixel.PowerShell.Internal;
 
@@ -11,7 +12,22 @@ internal static class SkiaNativeLibraryLoader
 
     public static void EnsureLoaded()
     {
-        _ = NativeLibraryHandle.Value;
+        IntPtr handle = NativeLibraryHandle.Value;
+
+        try
+        {
+            NativeLibrary.SetDllImportResolver(
+                typeof(SKImageInfo).Assembly,
+                (libraryName, _, _) =>
+                    libraryName.Contains("SkiaSharp", StringComparison.OrdinalIgnoreCase)
+                        ? handle
+                        : IntPtr.Zero);
+        }
+        catch (InvalidOperationException)
+        {
+            // Another SkiaSharp consumer installed a resolver first. The native
+            // library is still preloaded above for hosts where that is sufficient.
+        }
     }
 
     private static IntPtr LoadNativeLibrary()
