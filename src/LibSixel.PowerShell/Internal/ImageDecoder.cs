@@ -8,6 +8,11 @@ internal readonly record struct DecodedImage(int Width, int Height, byte[] Pixel
 
 internal static class ImageDecoder
 {
+    static ImageDecoder()
+    {
+        SkiaNativeLibraryLoader.EnsureLoaded();
+    }
+
     public static DecodedImage DecodeFile(string path)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(path);

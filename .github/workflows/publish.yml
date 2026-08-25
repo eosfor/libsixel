@@ -101,6 +101,12 @@ jobs:
             throw 'Out-Sixel was not exported by the published module.'
           }
 
+          $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="8" height="8"><rect width="8" height="8" fill="blue" /></svg>'
+          $sixel = $svg | Out-Sixel -Width 8 -AsString -ErrorAction Stop
+          if ($sixel.Length -lt 2 -or [int][char]$sixel[0] -ne 27 -or [int][char]$sixel[1] -ne 80) {
+            throw 'Out-Sixel did not produce a SIXEL device-control sequence.'
+          }
+
       - name: Upload module artifact
         uses: actions/upload-artifact@v4
         with:
